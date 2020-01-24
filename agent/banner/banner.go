@@ -19,8 +19,10 @@ package banner
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 	"text/template"
 	"time"
@@ -159,11 +161,13 @@ func (w *bannerResponseWriter) WriteHeader(statusCode int) {
 		return
 	}
 	w.wroteHeader = true
+	fmt.Println("Also here")
 	if !isHTMLResponse(statusCode, w.Header()) {
 		w.wrapped.WriteHeader(statusCode)
 		w.writeBytes = true
 		return
 	}
+	fmt.Println("Also also here")
 	setNotCacheable(w.Header())
 	setXFrameOptionsSameOrigin(w.Header())
 	if w.isAlreadyFramed {
@@ -171,12 +175,14 @@ func (w *bannerResponseWriter) WriteHeader(statusCode int) {
 		w.writeBytes = true
 		return
 	}
+	fmt.Println("Also also also here")
 	favIconLink, err := w.getFavIconLink()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	banner, e := w.getBanner(favIconLink)
+	fmt.Fprintf(os.Stderr, "Banner: %s", banner)
 	if e != nil {
 		http.Error(w, e.Error(), http.StatusInternalServerError)
 		return
@@ -198,12 +204,15 @@ func (w *bannerResponseWriter) Write(bs []byte) (int, error) {
 
 // Proxy builds an HTTP handler that proxies to a wrapped handler but injects the given HTML banner into every HTML response.
 func Proxy(ctx context.Context, wrapped http.Handler, bannerHTML, bannerHeight, favIconURL string) (http.Handler, error) {
+	fmt.Println("HERE")
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Println("And HERE")
 		if !isHTMLRequest(r) {
 			wrapped.ServeHTTP(w, r)
 			return
 		}
+		fmt.Println("And and HERE")
 		w = &bannerResponseWriter{
 			wrapped:         w,
 			bannerHTML:      bannerHTML,

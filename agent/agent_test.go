@@ -62,7 +62,10 @@ func checkRequest(proxyURL, testPath, want string, timeout time.Duration, expect
 	if err != nil {
 		return fmt.Errorf("internal error parsing a test URL: %v", err)
 	}
-	resp, err := client.Get(reqURL)
+	req, _ := http.NewRequest("GET", reqURL, nil)
+	req.Header.Set("Accept", "text/html")
+	req.Header.Set("Content-Type", "text/html")
+	resp, err := client.Do(req)
 	if err != nil {
 		return fmt.Errorf("failed to issue a frontend GET request: %v", err)
 	}
@@ -100,7 +103,7 @@ func RunLocalProxy(ctx context.Context, t *testing.T) (int, error) {
 	}
 	go func() {
 		err := proxyCmd.Wait()
-		t.Logf("Proxy result: %v, stdout/stderr: %q", err, proxyOut.String())
+		t.Logf("Proxy result: %v, stdout/stderr: %s", err, proxyOut.String())
 	}()
 	for i := 0; i < 30; i++ {
 		for _, line := range strings.Split(proxyOut.String(), "\n") {
@@ -221,7 +224,7 @@ func TestWithInMemoryProxyAndBackend(t *testing.T) {
 	defer func() {
 		cancel()
 		err := agentCmd.Wait()
-		t.Logf("Agent result: %v, stdout/stderr: %q", err, out.String())
+		t.Logf("Agent result: %v, stdout/stderr: %s", err, out.String())
 	}()
 
 	// Send one request through the proxy to make sure the agent has come up.
@@ -296,7 +299,7 @@ func TestWithInMemoryProxyAndBackendWithSessions(t *testing.T) {
 	defer func() {
 		cancel()
 		err := agentCmd.Wait()
-		t.Logf("Agent result: %v, stdout/stderr: %q", err, out.String())
+		t.Logf("Agent result: %v, stdout/stderr: %s", err, out.String())
 	}()
 
 	// Send one request through the proxy to make sure the agent has come up.
