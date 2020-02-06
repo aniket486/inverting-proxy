@@ -80,16 +80,20 @@ func isHTMLResponse(statusCode int, responseHeader http.Header) bool {
 }
 
 func isAlreadyFramed(r *http.Request) bool {
+	fmt.Println("framed1")
 	if r.Header.Get(secFetchModeHeader) == "nested-navigate" {
 		// If the browser told us the page is already framed, then believe it.
 		return true
 	}
+	fmt.Println("framed2")
 	if referer := r.Header.Get(refererHeader); referer != "" {
+		fmt.Printf("%s", referer)
 		refererURL, err := url.Parse(referer)
 		if err == nil && refererURL.Host == r.Host && refererURL.Path == r.URL.Path {
 			return true
 		}
 	}
+	fmt.Println("framed3")
 	return false
 }
 

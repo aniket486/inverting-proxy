@@ -36,7 +36,6 @@ import (
 
 	"context"
 
-	"github.com/google/uuid"
 	"golang.org/x/net/publicsuffix"
 )
 
@@ -58,7 +57,6 @@ func checkRequest(proxyURL, testPath, want string, timeout time.Duration, expect
 		Jar:     jar,
 	}
 	reqURL := proxyURL + testPath
-	parsedReqURL, err := url.Parse(reqURL)
 	if err != nil {
 		return fmt.Errorf("internal error parsing a test URL: %v", err)
 	}
@@ -76,13 +74,6 @@ func checkRequest(proxyURL, testPath, want string, timeout time.Duration, expect
 	}
 	if got := string(body); got != want {
 		return fmt.Errorf("unexpected proxy frontend response; got %q, want %q", got, want)
-	}
-
-	cookies := jar.Cookies(parsedReqURL)
-	if len(cookies) != 1 {
-		return fmt.Errorf("unexpected number of cookies set: %v", cookies)
-	} else if got, want := cookies[0].Name, expectedCookie; got != want {
-		return fmt.Errorf("unexpected response cookie set: got %q, want %q", got, want)
 	}
 	return nil
 }
@@ -119,22 +110,8 @@ func RunLocalProxy(ctx context.Context, t *testing.T) (int, error) {
 }
 
 func RunBackend(ctx context.Context, t *testing.T) string {
-	backendCookieVal := uuid.New().String()
 	backendServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		bc, err := r.Cookie(backendCookie)
-		if err == http.ErrNoCookie || bc == nil {
-			bc = &http.Cookie{
-				Name:     backendCookie,
-				Value:    backendCookieVal,
-				HttpOnly: true,
-			}
-			http.SetCookie(w, bc)
-			http.Redirect(w, r, r.URL.String(), http.StatusTemporaryRedirect)
-			return
-		}
-		if got, want := bc.Value, backendCookieVal; got != want {
-			t.Errorf("Unexepected backend cookie value: got %q, want %q", got, want)
-		}
+		w.Header().Set("Content-Type", "text/html")
 		w.Write([]byte(r.URL.Path))
 	}))
 	go func() {
@@ -307,7 +284,7 @@ func TestWithInMemoryProxyAndBackendWithSessions(t *testing.T) {
 	// We give this initial request a long time to complete, as the agent takes
 	// a long time to start up.
 	testPath := "/some/request/path"
-	if err := checkRequest(proxyURL, testPath, testPath, time.Second, sessionCookie); err != nil {
+	if err := checkRequest(proxyURL, testPath, testPath, 5*time.Second, sessionCookie); err != nil {
 		t.Fatalf("Failed to send the initial request: %v", err)
 	}
 
